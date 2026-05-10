@@ -89,7 +89,7 @@ header {
     border-right:1px solid var(--border);
     box-shadow:4px 0 24px rgba(0,0,0,0.45);
     transform:translateX(0);
-    z-index:50;
+    z-index:2000;
   }
 
   /* Hidden state — slide off to the left */
@@ -210,7 +210,7 @@ header {
 .leaflet-popup-tip { background:var(--surface); }
 
 /* Modal */
-.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:1000; align-items:center; justify-content:center; padding:16px; }
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:3000; align-items:center; justify-content:center; padding:16px; }
 .modal-overlay.open { display:flex; }
 .modal { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:20px; width:380px; max-width:100%; max-height:calc(100vh - 32px); overflow-y:auto; }
 .modal-title { font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:1.15rem; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:15px; color:var(--accent); }
