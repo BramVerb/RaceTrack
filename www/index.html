@@ -17,18 +17,18 @@
 }
 [data-theme="light"] {
   --bg:#f0f2f5; --surface:#ffffff; --surface2:#f5f7fa; --border:#dde1e7;
-  --accent:#1a73e8; --accent2:#f29900; --text:#1a1d23; --muted:#6b7280;
+  --accent:#1a73e8; --accent2:#d56000; --text:#1a1d23; --muted:#4b5563;
   --danger:#d93025; --good:#188038; --map-bg:#e8ecf0;
 }
 [data-theme="osm"] {
   --bg:#f5f5f0; --surface:#ffffff; --surface2:#f0f0ec; --border:#d4d0c8;
-  --accent:#729fcf; --accent2:#e8a000; --text:#2e2e2e; --muted:#7a7a6a;
-  --danger:#cc0000; --good:#4a9000; --map-bg:#aad3df;
+  --accent:#3a7fc1; --accent2:#b36000; --text:#1e1e18; --muted:#4a4a3a;
+  --danger:#cc0000; --good:#357000; --map-bg:#aad3df;
 }
 [data-theme="gmaps"] {
   --bg:#f8f9fa; --surface:#ffffff; --surface2:#f1f3f4; --border:#dadce0;
-  --accent:#1a73e8; --accent2:#fbbc04; --text:#202124; --muted:#80868b;
-  --danger:#ea4335; --good:#34a853; --map-bg:#e8eaed;
+  --accent:#1a73e8; --accent2:#b36000; --text:#202124; --muted:#4a4f56;
+  --danger:#c5221f; --good:#1e7e34; --map-bg:#e8eaed;
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -135,7 +135,7 @@ header {
 .route-card { display:flex; align-items:center; gap:8px; padding:7px 9px; background:var(--surface2); border:1px solid var(--border); border-radius:5px; }
 .route-color-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 .route-info { flex:1; min-width:0; }
-.route-name { font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:0.86rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.route-name { font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:0.86rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
 .route-meta { font-size:0.67rem; color:var(--muted); }
 .route-btn { background:none; border:none; cursor:pointer; color:var(--muted); font-size:0.8rem; padding:3px 5px; border-radius:3px; transition:all 0.15s; line-height:1; }
 .route-btn:hover { background:var(--border); color:var(--danger); }
@@ -164,7 +164,7 @@ header {
 .runner-card-header { display:flex; align-items:center; gap:8px; padding:8px 9px; }
 .runner-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
 .runner-info { flex:1; min-width:0; }
-.runner-name { font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.runner-name { font-family:'Barlow Condensed',sans-serif; font-weight:600; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
 .runner-sub { font-size:0.67rem; color:var(--muted); }
 .runner-actions { display:flex; gap:2px; }
 .runner-btn { background:none; border:none; cursor:pointer; color:var(--muted); font-size:0.8rem; padding:3px 5px; border-radius:3px; transition:all 0.15s; line-height:1; }
