@@ -425,6 +425,15 @@ header {
       </div>
     </div>
     <div class="divider"></div>
+    <div class="section-label" style="margin-bottom:9px;">Tracking</div>
+    <div class="toggle-row" id="autoStartToggleRow" style="margin-bottom:0;">
+      <div class="toggle-switch" id="autoStartToggle"></div>
+      <div>
+        <div class="toggle-label" style="color:var(--text);font-size:0.82rem;">Auto-start tracking on reload</div>
+        <div class="toggle-label" style="margin-top:2px;">Tracking begins automatically when the page loads, no button press needed.</div>
+      </div>
+    </div>
+    <div class="divider"></div>
     <div class="section-label" style="margin-bottom:9px;">Data</div>
     <button class="btn-secondary" id="clearStorageBtn" style="margin-top:0;color:var(--danger);border-color:var(--danger);">🗑 Clear all saved data</button>
     <div class="modal-actions">
@@ -463,6 +472,7 @@ let isTracking = false, trackInterval = null;
 let activeRunnerId = null;
 let selectedColor = RUNNER_COLORS[0];
 let intervalEnabled = false, editingRunnerId = null;
+let autoStart = true;
 
 // ════════════════════════════════════════════════════════════
 // PERSISTENCE
@@ -477,7 +487,8 @@ function saveState() {
       routes: routes.map(r => ({ id:r.id, name:r.name, color:r.color, rawPoints:r.rawPoints })),
       runners: runners.map(({id,name,color,routeId,paceSecPerKm,paceSecFast,paceSecSlow,hasInterval,initials}) =>
         ({id,name,color,routeId,paceSecPerKm,paceSecFast,paceSecSlow,hasInterval,initials})),
-      activeRunnerId
+      activeRunnerId,
+      autoStart
     }));
   } catch(e) { console.warn('Save failed',e); }
 }
@@ -519,8 +530,11 @@ function loadState() {
   });
 
   activeRunnerId = data.activeRunnerId || (runners.length ? runners[0].id : null);
+  autoStart = !!data.autoStart;
+  syncAutoStartUI();
   renderRunnersList();
   updateStartBtn();
+  return data; // return so boot can check autoStart
 }
 
 // ════════════════════════════════════════════════════════════
@@ -855,6 +869,15 @@ document.getElementById('clearStorageBtn').addEventListener('click',()=>{
   localStorage.removeItem(LS_KEY); location.reload();
 });
 
+function syncAutoStartUI() {
+  document.getElementById('autoStartToggle').className = 'toggle-switch' + (autoStart ? ' on' : '');
+}
+document.getElementById('autoStartToggleRow').addEventListener('click', () => {
+  autoStart = !autoStart;
+  syncAutoStartUI();
+  saveState();
+});
+
 // ════════════════════════════════════════════════════════════
 // SIDEBAR DRAWER (mobile slide-over, desktop always visible)
 // ════════════════════════════════════════════════════════════
@@ -1038,6 +1061,10 @@ renderRoutesList();
 renderRunnersList();
 // On mobile, start with drawer hidden (map visible immediately)
 if(isMobile()) sidebar.classList.add('drawer-hidden');
+// Auto-start if enabled and there's a valid setup to track
+if(autoStart && routes.length && runners.length && runners.every(r => routes.find(x => x.id === r.routeId))) {
+  startTracking();
+}
 </script>
 </body>
 </html>
