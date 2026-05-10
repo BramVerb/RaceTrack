@@ -288,22 +288,6 @@ header {
       </div>
     </div>
 
-    <!-- Race Settings -->
-    <div class="sidebar-section">
-      <div class="section-label">Race Settings</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Start time</label>
-          <input type="time" class="form-input" id="startTime" value="09:00" step="1" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Date</label>
-          <input type="date" class="form-input" id="startDate" />
-        </div>
-      </div>
-      <div class="hint">Leave date empty to use today.</div>
-    </div>
-
     <!-- Runners -->
     <div class="sidebar-section" style="flex:1;">
       <div class="section-label">Runners</div>
@@ -481,10 +465,8 @@ function saveState() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       theme: currentTheme,
-      startTime: document.getElementById('startTime').value,
-      startDate: document.getElementById('startDate').value,
       // Store rawPoints as flat arrays [lat,lng] to save space
-      routes: routes.map(r => ({ id:r.id, name:r.name, color:r.color, rawPoints:r.rawPoints })),
+      routes: routes.map(r => ({ id:r.id, name:r.name, color:r.color, rawPoints:r.rawPoints, startTime:r.startTime, startDate:r.startDate })),
       runners: runners.map(({id,name,color,routeId,paceSecPerKm,paceSecFast,paceSecSlow,hasInterval,initials}) =>
         ({id,name,color,routeId,paceSecPerKm,paceSecFast,paceSecSlow,hasInterval,initials})),
       activeRunnerId,
@@ -500,16 +482,10 @@ function loadState() {
 
   if (data.theme) applyTheme(data.theme, false);
 
-  // Restore start time / date BEFORE setting today's date as default
-  if (data.startTime) document.getElementById('startTime').value = data.startTime;
-  if (data.startDate) document.getElementById('startDate').value = data.startDate;
-
   // Restore routes
   (data.routes||[]).forEach(r => {
-    // rawPoints from JSON: each element is either {lat,lng} object (new format)
-    // Normalise just in case it was stored as arrays
     const rawPoints = (r.rawPoints||[]).map(p => Array.isArray(p) ? {lat:p[0],lng:p[1]} : {lat:+p.lat, lng:+p.lng});
-    if (rawPoints.length) restoreRoute(r.id, r.name||'', r.color, rawPoints);
+    if (rawPoints.length) restoreRoute(r.id, r.name||'', r.color, rawPoints, r.startTime||'09:00', r.startDate||'');
   });
 
   // Restore runners — explicit field copy to avoid stale/undefined spread
@@ -624,13 +600,15 @@ function addRouteFromFile(file) {
     const id='route_'+Date.now()+'_'+Math.random().toString(36).slice(2,5);
     const name=file.name.replace(/\.gpx$/i,'');
     const color=ROUTE_PALETTE[routes.length%ROUTE_PALETTE.length];
-    restoreRoute(id,name,color,rawPoints);
+    // Default start time = 09:00, date = today
+    const today=new Date(); const yyyy=today.getFullYear(), mm=String(today.getMonth()+1).padStart(2,'0'), dd=String(today.getDate()).padStart(2,'0');
+    restoreRoute(id,name,color,rawPoints,'09:00',`${yyyy}-${mm}-${dd}`);
     saveState();
   };
   reader.readAsText(file);
 }
 
-function restoreRoute(id,name,color,rawPoints) {
+function restoreRoute(id,name,color,rawPoints,startTime='09:00',startDate='') {
   const points=buildRoute(rawPoints);
   const totalDist=points[points.length-1].dist;
   ensureMap();
@@ -638,7 +616,7 @@ function restoreRoute(id,name,color,rawPoints) {
   const mapLayer=L.polyline(ll,{color,weight:4,opacity:0.45,lineJoin:'round'}).addTo(map);
   const startM=L.circleMarker(ll[0],{radius:5,fillColor:'#4caf50',color:'#fff',weight:2,fillOpacity:1}).addTo(map).bindTooltip(`Start: ${name}`);
   const finishM=L.circleMarker(ll[ll.length-1],{radius:5,fillColor:'#f44336',color:'#fff',weight:2,fillOpacity:1}).addTo(map).bindTooltip(`Finish: ${name}`);
-  routes.push({id,name,rawPoints,points,totalDist,color,mapLayer,startM,finishM});
+  routes.push({id,name,rawPoints,points,totalDist,color,mapLayer,startM,finishM,startTime,startDate});
   fitAll(); renderRoutesList(); populateRouteSelect(); updateStartBtn(); updatePanelSummary();
 }
 
@@ -655,10 +633,36 @@ function removeRoute(id) {
 function renderRoutesList() {
   const el=document.getElementById('routesList'); el.innerHTML='';
   routes.forEach(r=>{
-    const c=document.createElement('div'); c.className='route-card';
-    c.innerHTML=`<div class="route-color-dot" style="background:${r.color}"></div>
-      <div class="route-info"><div class="route-name">${r.name}</div><div class="route-meta">${r.points.length.toLocaleString()} pts · ${r.totalDist.toFixed(2)} km</div></div>
-      <button class="route-btn" title="Remove" onclick="removeRoute('${r.id}')">✕</button>`;
+    const c=document.createElement('div');
+    c.className='route-card'; c.style.flexDirection='column'; c.style.alignItems='stretch'; c.style.gap='7px';
+    c.innerHTML=`
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="route-color-dot" style="background:${r.color}"></div>
+        <div class="route-info">
+          <div class="route-name">${r.name}</div>
+          <div class="route-meta">${r.points.length.toLocaleString()} pts · ${r.totalDist.toFixed(2)} km</div>
+        </div>
+        <button class="route-btn" title="Remove" onclick="removeRoute('${r.id}')">✕</button>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="flex:0 0 auto;">
+          <div class="form-label" style="margin-bottom:3px;">Start time</div>
+          <input type="time" class="form-input route-start-time" data-id="${r.id}" value="${r.startTime||'09:00'}" step="1" style="width:100px;font-size:0.82rem;padding:5px 6px;" />
+        </div>
+        <div style="flex:1;">
+          <div class="form-label" style="margin-bottom:3px;">Date <span style="font-weight:300;opacity:0.6;">(blank = today)</span></div>
+          <input type="date" class="form-input route-start-date" data-id="${r.id}" value="${r.startDate||''}" style="font-size:0.82rem;padding:5px 6px;" />
+        </div>
+      </div>`;
+    // Live-update route object and save on input change
+    c.querySelectorAll('.route-start-time,.route-start-date').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        const rt=routes.find(x=>x.id===inp.dataset.id); if(!rt)return;
+        if(inp.classList.contains('route-start-time')) rt.startTime=inp.value;
+        else rt.startDate=inp.value;
+        saveState();
+      });
+    });
     el.appendChild(c);
   });
 }
@@ -915,18 +919,26 @@ function updatePanelSummary() {} // no-op — summary bar removed
 // ════════════════════════════════════════════════════════════
 // TRACKING
 // ════════════════════════════════════════════════════════════
-function getStartTs(){
-  const t=document.getElementById('startTime').value||'09:00',d=document.getElementById('startDate').value;
+function getStartTs(route){
+  const t=(route&&route.startTime)||'09:00';
+  const d=(route&&route.startDate)||'';
   if(d)return new Date(d+'T'+t).getTime();
   const n=new Date();const[h,m,s='0']=t.split(':');n.setHours(+h,+m,+s,0);return n.getTime();
 }
 
 function updatePositions(){
-  const now=Date.now(),startTs=getStartTs(),elapsed=Math.max(0,(now-startTs)/1000);
-  updateElapsed(elapsed);
+  const now=Date.now();
+  // Compute the earliest start across all active runners for the elapsed display
+  let minStart=Infinity;
+  runners.forEach(r=>{ const rt=routes.find(x=>x.id===r.routeId); if(rt){const ts=getStartTs(rt);if(ts<minStart)minStart=ts;} });
+  if(minStart===Infinity)minStart=now;
+  updateElapsed(Math.max(0,(now-minStart)/1000));
+
   runners.forEach(r=>{
     const route=routes.find(x=>x.id===r.routeId);if(!route)return;
     const{points,totalDist}=route;
+    const startTs=getStartTs(route);
+    const elapsed=Math.max(0,(now-startTs)/1000);
     const dist=Math.min(elapsed/r.paceSecPerKm,totalDist);
     const pos=interpolate(points,dist);if(!pos)return;
 
@@ -971,9 +983,10 @@ function updatePositions(){
       📍 ${dist.toFixed(2)} / ${totalDist.toFixed(2)} km (${pct}%)<br>⏱ ${fmtTime(elapsed)}<br>🏁 Est. finish: <strong>${finish}</strong>`;
     if(r.hasInterval&&r.paceSecFast&&r.paceSecSlow){
       const ef=new Date(startTs+r.paceSecFast*totalDist*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-      const el=new Date(startTs+r.paceSecSlow*totalDist*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-      html+=`<br><span style="color:#4caf50">▲ Best: ${ef}</span>&nbsp;&nbsp;<span style="color:#f4a623">▼ Worst: ${el}</span>`;
+      const ell=new Date(startTs+r.paceSecSlow*totalDist*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      html+=`<br><span style="color:#4caf50">▲ Best: ${ef}</span>&nbsp;&nbsp;<span style="color:#f4a623">▼ Worst: ${ell}</span>`;
     }
+    r.startTs=startTs; // store on runner for updateStatsPanel
     html+='</div>'; r.marker.bindPopup(html);
   });
   updateStatsPanel(); renderRunnersList();
@@ -988,7 +1001,7 @@ function updateStatsPanel(){
   if(!r||!isTracking||r.currentDist===undefined)return;
   const route=routes.find(x=>x.id===r.routeId);if(!route)return;
   const total=route.totalDist,dist=r.currentDist,pct=dist/total*100;
-  const startTs=getStartTs();
+  const startTs=r.startTs||getStartTs(route);
   const finish=new Date(startTs+r.paceSecPerKm*total*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   document.getElementById('statsRunnerName').textContent=r.name;
   document.getElementById('statDist').innerHTML=dist.toFixed(2)+'<span class="stat-unit">km</span>';
@@ -1036,7 +1049,6 @@ function stopTracking(){
 
 document.getElementById('startBtn').addEventListener('click',startTracking);
 document.getElementById('stopBtn').addEventListener('click',stopTracking);
-['startTime','startDate'].forEach(id=>document.getElementById(id).addEventListener('change',saveState));
 function updateStartBtn(){document.getElementById('startBtn').disabled=!routes.length||!runners.length;}
 function updateStatus(text,live=false){const b=document.getElementById('statusBadge');b.textContent=text;b.className='status-badge'+(live?' live':'');}
 
@@ -1054,8 +1066,6 @@ document.addEventListener('keydown',e=>{
 // ════════════════════════════════════════════════════════════
 // BOOT
 // ════════════════════════════════════════════════════════════
-// Set today as default BEFORE loadState (loadState will overwrite if saved)
-document.getElementById('startDate').valueAsDate = new Date();
 loadState();
 renderRoutesList();
 renderRunnersList();
